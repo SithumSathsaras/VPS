@@ -9,9 +9,21 @@ jobs:
   setup-stunnel:
     runs-on: ubuntu-latest
 
+    env:
+      PROXY_ADDRESS: ${{ secrets.PROXY_ADDRESS }}
+      PROXY_USERNAME: ${{ secrets.PROXY_USERNAME }}
+      PROXY_PASSWORD: ${{ secrets.PROXY_PASSWORD }}
+      JUMP_HOST_ADDRESS: ${{ secrets.JUMP_HOST_ADDRESS }}
+      JUMP_HOST_DNS_NAME: ${{ secrets.JUMP_HOST_DNS_NAME }}
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - name: Print values
+      run: |
+        echo "Proxy Address: $PROXY_ADDRESS"
+        echo "Proxy Username: $PROXY_USERNAME"
+        echo "Proxy Password: $PROXY_PASSWORD"
+        echo "Jump Host Address: $JUMP_HOST_ADDRESS"
+        echo "Jump Host DNS Name: $JUMP_HOST_DNS_NAME"
 
     - name: Install stunnel
       run: |
@@ -25,28 +37,19 @@ jobs:
         cert=/etc/stunnel/stunnel.pem
 
         [ssh]
-        accept=443
-        connect=127.0.0.1:22
+        client=yes
+        libwrap=no
+        accept=2222
+        connect=$PROXY_ADDRESS
+        protocolUsername=$PROXY_USERNAME
+        protocolPassword=$PROXY_PASSWORD
+        protocolHost=$JUMP_HOST_ADDRESS:443
         EOF
 
     - name: Move stunnel configuration to /etc/stunnel
       run: |
         sudo mv stunnel.conf /etc/stunnel/stunnel.conf
 
-    - name : prin IP
-      run: |
-          sudo ifconfig
-
     - name: Restart stunnel service
       run: |
-        sudo ifconfig
-        journalctl -xeu stunnel4.service
         sudo systemctl restart stunnel4
-
-
-        cat /etc/stunnel/stunnel.conf
-
-
-
-
-    
