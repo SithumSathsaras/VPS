@@ -13,42 +13,33 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup Stunnel on Client
+    - name: Install stunnel
       run: |
         sudo apt-get update
         sudo apt-get install -y stunnel4
-        # Your openssl commands here
 
-        cat >/etc/stunnel/stunnel.conf <<EOF
+    - name: Create stunnel configuration file
+      run: |
+        cat > stunnel.conf <<EOF
         pid=/var/run/stunnel.pid
         cert=/etc/stunnel/stunnel.pem
-
-        [ssh]
-        client=yes
-        libwrap=no
-        accept=2222
-        connect=$PROXY_ADDRESS
-        protocolUsername=$PROXY_USERNAME
-        protocolPassword=$PROXY_PASSWORD
-        protocolHost=$JUMP_HOST_ADDRESS:443
-        EOF
-
-        systemctl start stunnel4
-
-    - name: Setup Stunnel on Jump Host
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y stunnel4
-        # Your certbot and stunnel configuration here
-
-        cat >/etc/stunnel/stunnel.conf <<EOF
-        pid=/var/run/stunnel.pid
-        key=/etc/letsencrypt/live/$JUMP_HOST_DNS_NAME/privkey.pem
-        cert=/etc/letsencrypt/live/$JUMP_HOST_DNS_NAME/fullchain.pem
 
         [ssh]
         accept=443
         connect=127.0.0.1:22
         EOF
 
-        systemctl start stunnel4
+    - name: Move stunnel configuration to /etc/stunnel
+      run: |
+        sudo mv stunnel.conf /etc/stunnel/stunnel.conf
+
+    - name : prin IP
+      run: |
+          sudo ifconfig
+
+    - name: Restart stunnel service
+      run: |
+        sudo systemctl restart stunnel4
+
+
+    
