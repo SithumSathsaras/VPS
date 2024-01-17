@@ -1,4 +1,4 @@
-name: Setup and Configure Stunnel
+name: Stunnel Setup
 
 on:
   push:
@@ -6,26 +6,49 @@ on:
       - main
 
 jobs:
-  deploy:
+  setup-stunnel:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup Server and Install Stunnel
+    - name: Setup Stunnel on Client
       run: |
-        # Install stunnel on the server
-        ssh <your-server-username>@<your-server-ip> 'sudo apt-get update && sudo apt-get install -y stunnel'
+        sudo apt-get update
+        sudo apt-get install -y stunnel4
+        # Your openssl commands here
 
-    - name: Configure Stunnel
-      run: |
-        # Upload stunnel configuration file to the server
-        scp .github/stunnel/stunnel.conf <your-server-username>@<your-server-ip>:/tmp/
-        # SSH to the server and move the configuration to the correct location
-        ssh <your-server-username>@<your-server-ip> 'sudo mv /tmp/stunnel.conf /etc/stunnel/stunnel.conf'
+        cat >/etc/stunnel/stunnel.conf <<EOF
+        pid=/var/run/stunnel.pid
+        cert=/etc/stunnel/stunnel.pem
 
-    - name: Restart Stunnel
+        [ssh]
+        client=yes
+        libwrap=no
+        accept=2222
+        connect=$PROXY_ADDRESS
+        protocolUsername=$PROXY_USERNAME
+        protocolPassword=$PROXY_PASSWORD
+        protocolHost=$JUMP_HOST_ADDRESS:443
+        EOF
+
+        systemctl start stunnel4
+
+    - name: Setup Stunnel on Jump Host
       run: |
-        # Restart stunnel on the server
-        ssh <your-server-username>@<your-server-ip> 'sudo service stunnel4 restart'
+        sudo apt-get update
+        sudo apt-get install -y stunnel4
+        # Your certbot and stunnel configuration here
+
+        cat >/etc/stunnel/stunnel.conf <<EOF
+        pid=/var/run/stunnel.pid
+        key=/etc/letsencrypt/live/$JUMP_HOST_DNS_NAME/privkey.pem
+        cert=/etc/letsencrypt/live/$JUMP_HOST_DNS_NAME/fullchain.pem
+
+        [ssh]
+        accept=443
+        connect=127.0.0.1:22
+        EOF
+
+        systemctl start stunnel4
