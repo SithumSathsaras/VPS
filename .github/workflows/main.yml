@@ -39,6 +39,7 @@ jobs:
 
     - name: Restart stunnel service
       run: |
+        sudo ifconfig
         journalctl -xeu stunnel4.service
         sudo systemctl restart stunnel4
 
