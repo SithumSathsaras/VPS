@@ -39,8 +39,9 @@ jobs:
 
     - name: Restart stunnel service
       run: |
-        systemctl status stunnel4.service
         journalctl -xeu stunnel4.service
+        sudo systemctl restart stunnel4
+
 
         cat /etc/stunnel/stunnel.conf
 
